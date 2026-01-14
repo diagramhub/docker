@@ -32,7 +32,7 @@ This repository contains a Docker Compose setup for self-hosting [diagramHub](ht
 1. Clone this repository to your server:
 
    ```bash
-   git clone https://github.com/diagramhub/diagramhub-docker.git
+   git clone https://github.com/diagramhub/docker.git
    ```
 
 2. Navigate to the project directory:
