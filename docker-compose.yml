@@ -1,0 +1,115 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+    environment:
+      - APP_FQDN=${APP_FQDN}
+      - DRAWIO_FQDN=${DRAWIO_FQDN}
+    command:
+      - /bin/sh
+      - -c
+      - |-
+        envsubst '$${APP_FQDN} $${DRAWIO_FQDN}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        exec nginx -g 'daemon off;'
+    depends_on:
+      - web
+      - api
+      - drawio
+
+  api:
+    image: mwiede/diagramhub-api:latest
+    restart: unless-stopped
+    expose:
+      - 8080
+    environment:
+      - AzureAd__Instance=https://login.microsoftonline.com/
+      - AzureAd__TenantId=${ENTRA_TENANT_ID}
+      - AzureAd__ClientId=${ENTRA_CLIENT_ID}
+      - AzureAd__Scopes=offline_access api://${ENTRA_CLIENT_ID}/user_impersonation
+      - NameClaimType=${ENTRA_NAME_CLAIM_TYPE}
+      - ConnectionStrings__rabbitmq=amqp://user:a09b2d39-78f1-4206-a2f2-32557c94e228@rabbitmq:5672
+      - ConnectionStrings__diagramhub=mongodb://admin:AH7qydrW8rsb3gusRFykhz@db:27017/diagramhub?authSource=admin&authMechanism=SCRAM-SHA-256
+      - FileBasePath=/data
+      - DIAGRAMHUB_LICENSE=${DIAGRAMHUB_LICENSE}
+    volumes:
+      - diagram-data:/data
+    depends_on:
+      - rabbitmq
+
+  web:
+    image: mwiede/diagramhub-web:latest
+    restart: unless-stopped
+    expose:
+      - 80
+    environment:
+      - DIAGRAMHUB_ENTRA_CLIENT_ID=${ENTRA_CLIENT_ID}
+      - DIAGRAMHUB_ENTRA_TENANT_ID=${ENTRA_TENANT_ID}
+      - DIAGRAMHUB_APP_URL=${APP_SCHEME}://${APP_FQDN}
+      - DIAGRAMHUB_DRAWIO_URL=${APP_SCHEME}://${DRAWIO_FQDN}
+  
+  db:
+    image: docker.io/library/mongo:8.2
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=AH7qydrW8rsb3gusRFykhz
+    volumes:
+      - mongo-data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:4.0.9
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=a09b2d39-78f1-4206-a2f2-32557c94e228
+      - RABBITMQ_DATA_DIR=/var/lib/rabbitmq
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  drawio:
+    image: jgraph/drawio:latest
+    restart: unless-stopped
+    expose:
+      - 8080
+    depends_on:
+      - drawio-plantuml-server
+      - drawio-image-export
+    links:
+      - drawio-plantuml-server:drawio-plantuml-server
+      - drawio-image-export:drawio-image-export
+    environment:
+      - DRAWIO_SELF_CONTAINED=1
+      - EXPORT_URL=http://drawio-image-export:8000/
+      - PLANTUML_URL=http://drawio-plantuml-server:8080/
+      - PUBLIC_DNS=${DRAWIO_FQDN}
+      - DRAWIO_SERVER_URL=${APP_SCHEME}://${DRAWIO_FQDN}/
+      - DRAWIO_BASE_URL=${APP_SCHEME}://${DRAWIO_FQDN}/
+
+  drawio-image-export:
+    image: jgraph/export-server
+    restart: unless-stopped
+    expose:
+      - 8000
+    volumes:
+      - drawio-fonts-volume:/usr/share/fonts/drawio
+    environment:
+      - DRAWIO_SERVER_URL=${APP_SCHEME}://${DRAWIO_FQDN}/
+      - DRAWIO_BASE_URL=${APP_SCHEME}://${DRAWIO_FQDN}/
+
+  drawio-plantuml-server:
+    image: jgraph/plantuml-server
+    restart: unless-stopped
+    expose:
+      - 8080
+    volumes:
+      - drawio-fonts-volume:/usr/share/fonts/drawio
+
+volumes:
+  rabbitmq-data:
+  drawio-fonts-volume:
+  mongo-data:
+  diagram-data:
