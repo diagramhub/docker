@@ -9,7 +9,7 @@ This repository contains a Docker Compose setup for self-hosting [diagramHub](ht
 - Docker and Docker Compose installed on your server
 - An Azure Entra ID tenant and application for authentication
 - **Two domain names** for accessing the application and draw.io service, like `app.yourdomain.com` and `drawio.yourdomain.com` and the corresponding DNS records pointing to your server's IP address and SSL certificates configured.
- 
+
 > For testing purposes, you can use `localhost` and `drawio.localhost` as FQDNs, but for production use, proper domain names are required.
 
 ## Setup Instructions
@@ -26,6 +26,8 @@ This repository contains a Docker Compose setup for self-hosting [diagramHub](ht
      - Set the **Aplication ID URI** to `api://<CLIENT_ID>`
      - Add a scope named `user_impersonation`.
 2. Note down the **Tenant ID** and **Client ID** for later use.
+
+> You can use the provided Bash/PowerShell script to automate the Entra ID app setup: `scripts/setup-entra-id-app.sh` or `scripts/setup-entra-id-app.ps1`.
 
 ### Deploying diagramHub with Docker Compose
 
