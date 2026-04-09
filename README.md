@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a Docker Compose setup for self-hosting [diagramHub](https://web.diagramhub.app), an online diagramming tool. The setup includes services for the web frontend, API backend, and draw.io integration.
+This repository contains a Docker Compose setup for self-hosting [diagramHub](https://diagramhub.app), an online diagramming tool. The setup includes services for the web frontend, API backend, and draw.io integration.
 
 ## Prerequisites
 
